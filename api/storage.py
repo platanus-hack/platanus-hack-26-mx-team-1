@@ -5,6 +5,14 @@ Reemplaza la versión de SQLite de PromptGuard: en Vercel (serverless)
 el disco no persiste entre invocaciones, así que el historial y las
 stats viven en una tabla de Postgres en Supabase.
 
+Hablamos con Supabase a través de su REST API (PostgREST) usando
+`requests` directamente, en vez del cliente oficial `supabase-py`. ¿Por
+qué? Porque las versiones viejas de `supabase-py` validan localmente que
+la key tenga formato JWT (`eyJ...`) y rechazan con "Invalid API key" las
+NUEVAS keys de Supabase (`sb_secret_...`), que ya no son JWT. Llamar a
+PostgREST directo acepta CUALQUIER formato de key (la pasa tal cual en
+los headers) y de paso elimina una dependencia pesada del bundle.
+
 Requiere las variables de entorno:
   SUPABASE_URL
   SUPABASE_SERVICE_ROLE_KEY   (nunca la "anon key" — esta es la llave
@@ -18,25 +26,45 @@ vez en el SQL editor de tu proyecto de Supabase antes de desplegar.
 from __future__ import annotations
 
 import os
-from functools import lru_cache
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_SERVICE_ROLE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+import requests
 
 TABLE = "analyses"
 
 
-@lru_cache(maxsize=1)
-def _client():
-    """Cliente de Supabase, creado una sola vez por invocación (cacheado)."""
-    if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
+def _env(name: str) -> str | None:
+    """Lee una variable de entorno limpiando espacios y comillas que se
+    cuelan al pegar valores en el dashboard de Vercel."""
+    value = os.environ.get(name)
+    if value is None:
+        return None
+    return value.strip().strip('"').strip("'").strip()
+
+
+def _config() -> tuple[str, str]:
+    url = _env("SUPABASE_URL")
+    key = _env("SUPABASE_SERVICE_ROLE_KEY")
+    if not url or not key:
         raise RuntimeError(
             "Faltan SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en las "
             "variables de entorno. Configúralas en el proyecto de Vercel."
         )
-    from supabase import create_client  # import perezoso
+    return url.rstrip("/"), key
 
-    return create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+
+def _headers(key: str, extra: dict | None = None) -> dict:
+    headers = {
+        "apikey": key,
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json",
+    }
+    if extra:
+        headers.update(extra)
+    return headers
+
+
+def _rest_url(url: str) -> str:
+    return f"{url}/rest/v1/{TABLE}"
 
 
 def init_db() -> None:
@@ -59,6 +87,7 @@ def save_analysis(
     bot_response: str | None = None,
 ) -> str:
     """Inserta un análisis y regresa el id (uuid) generado por Supabase."""
+    url, key = _config()
     row = {
         "channel": channel,
         "from_number": from_number,
@@ -72,47 +101,61 @@ def save_analysis(
         "claude_stub": claude_stub,
         "bot_response": bot_response,
     }
-    result = _client().table(TABLE).insert(row).execute()
-    return result.data[0]["id"] if result.data else ""
+    resp = requests.post(
+        _rest_url(url),
+        headers=_headers(key, {"Prefer": "return=representation"}),
+        json=row,
+        timeout=10,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    return data[0]["id"] if data else ""
 
 
 def get_history(limit: int = 20) -> list[dict]:
-    result = (
-        _client()
-        .table(TABLE)
-        .select("*")
-        .order("created_at", desc=True)
-        .limit(limit)
-        .execute()
+    url, key = _config()
+    resp = requests.get(
+        _rest_url(url),
+        headers=_headers(key),
+        params={"select": "*", "order": "created_at.desc", "limit": limit},
+        timeout=10,
     )
-    return [_normalize_row(row) for row in result.data]
+    resp.raise_for_status()
+    return [_normalize_row(row) for row in resp.json()]
+
+
+def _count(url: str, key: str, filters: dict | None = None) -> int:
+    """Cuenta filas usando el header Content-Range de PostgREST sin
+    transferir las filas (pide solo el rango 0-0)."""
+    params = {"select": "id"}
+    if filters:
+        params.update(filters)
+    resp = requests.get(
+        _rest_url(url),
+        headers=_headers(key, {"Prefer": "count=exact", "Range": "0-0"}),
+        params=params,
+        timeout=10,
+    )
+    resp.raise_for_status()
+    # Content-Range viene como "0-0/137" (o "*/0" si no hay filas).
+    content_range = resp.headers.get("Content-Range", "")
+    total = content_range.split("/")[-1] if "/" in content_range else ""
+    try:
+        return int(total)
+    except ValueError:
+        return 0
 
 
 def get_stats() -> dict:
-    client = _client()
+    url, key = _config()
 
-    total = client.table(TABLE).select("id", count="exact").execute().count or 0
-    blocked = (
-        client.table(TABLE)
-        .select("id", count="exact")
-        .eq("blocked", True)
-        .execute()
-        .count
-        or 0
-    )
+    total = _count(url, key)
+    blocked = _count(url, key, {"blocked": "eq.true"})
     allowed = total - blocked
 
     by_level = {"bajo": 0, "medio": 0, "alto": 0}
     for level in by_level:
-        count = (
-            client.table(TABLE)
-            .select("id", count="exact")
-            .eq("risk_level", level)
-            .execute()
-            .count
-            or 0
-        )
-        by_level[level] = count
+        by_level[level] = _count(url, key, {"risk_level": f"eq.{level}"})
 
     return {
         "total": total,
