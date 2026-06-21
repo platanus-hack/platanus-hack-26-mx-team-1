@@ -525,9 +525,21 @@ a { color: var(--accent); text-decoration: none; }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
 }
 .hist__status { grid-column: 2; grid-row: 1 / span 2; justify-self: end; }
-.hist__foot { grid-column: 1; display: flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 10.5px; color: var(--text-faint); }
+.hist__foot { grid-column: 1; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-family: var(--font-mono); font-size: 10.5px; color: var(--text-faint); }
 .hist__score { color: var(--text-dim); }
 .hist__sep { opacity: 0.4; }
+
+/* etiqueta de canal — clave para la historia multicanal del pitch */
+.chan {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--font-mono); font-size: 9.5px; font-weight: 600;
+  padding: 2px 7px; border-radius: 999px;
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.chan::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.chan--whatsapp { color: #25d366; background: #25d36618; }
+.chan--web { color: var(--accent); background: var(--accent-soft); }
+.chan--dashboard { color: var(--text-dim); background: var(--surface-3); }
 
 .pill {
   font-family: var(--font-mono); font-size: 10px; font-weight: 600;

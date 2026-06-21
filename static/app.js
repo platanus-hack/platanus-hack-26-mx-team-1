@@ -60,6 +60,12 @@
 
   const GAUGE_ARC_LENGTH = 276; // longitud del arco (debe coincidir con el CSS)
 
+  const CHANNELS = {
+    whatsapp: { label: "WhatsApp", cls: "whatsapp" },
+    web: { label: "Web", cls: "web" },
+    dashboard: { label: "Panel", cls: "dashboard" },
+  };
+
   const CATEGORY_LABELS = {
     prompt_injection: "Inyección",
     jailbreak: "Jailbreak",
@@ -250,9 +256,12 @@
       status.className = `pill ${item.blocked ? "pill--blocked" : "pill--allowed"} hist__status`;
       status.textContent = item.blocked ? "Bloqueado" : "Permitido";
 
+      const ch = CHANNELS[item.channel] || { label: "—", cls: "dashboard" };
       const foot = document.createElement("span");
       foot.className = "hist__foot";
       foot.innerHTML =
+        `<span class="chan chan--${ch.cls}">${ch.label}</span>` +
+        `<span class="hist__sep">·</span>` +
         `<span>${formatRelative(item.created_at)}</span>` +
         `<span class="hist__sep">·</span>` +
         `<span class="hist__score">${label.replace("Riesgo ", "")} ${item.risk_score}</span>`;
