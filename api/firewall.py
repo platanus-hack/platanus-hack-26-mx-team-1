@@ -73,6 +73,14 @@ def _loose_phrase(phrase: str) -> str:
     return r"[\s\.\-\*_]+".join(_loose(w) for w in words)
 
 
+def _any_loose(*phrases: str) -> str:
+    """Construye un grupo alternado (a|b|c) tolerante a evasión a partir de
+    varias frases. IMPORTANTE: las reglas no-`raw` corren sobre el texto YA
+    normalizado (minúsculas, sin acentos, ñ→n), así que las frases aquí
+    deben escribirse en esa forma: 'apunalar' no 'apuñalar', 'dano' no 'daño'."""
+    return "(" + "|".join(_loose_phrase(p) for p in phrases) + ")"
+
+
 @dataclass
 class Rule:
     id: str
@@ -320,6 +328,24 @@ RULES: list[Rule] = [
         pattern=_rx(r"\b\d{3}-\d{2}-\d{4}\b"),
         raw=True,
     ),
+    Rule(
+        id="EX-009",
+        category="exfiltration",
+        weight=25,
+        description="Intento de extraer el código fuente o la implementación interna del bot",
+        pattern=_rx(
+            _any_loose(
+                "dame", "dime", "muestrame", "muestra", "comparte", "ensename",
+                "give me", "show me", "reveal", "send me",
+            )
+            + r"[\s\w,]{0,15}"
+            + _any_loose(
+                "tu codigo fuente", "tu codigo", "tu source code", "your source code",
+                "your code", "tu implementacion", "your implementation",
+                "como estas programado", "how you are programmed", "how you were built",
+            )
+        ),
+    ),
     # ----------------------- harmful_content -----------------------
     Rule(
         id="HC-001",
@@ -370,6 +396,68 @@ RULES: list[Rule] = [
         pattern=_rx(
             r"(" + _loose_phrase("como sintetizar droga") + r"|" + _loose_phrase("synthesize drugs") + r"|"
             + _loose_phrase("como producir metanfetamina") + r"|" + _loose_phrase("how to make meth") + r")"
+        ),
+    ),
+    Rule(
+        id="HC-006",
+        category="harmful_content",
+        weight=60,
+        description="Solicitud de instrucciones para dañar, herir o asesinar a otra persona (violencia)",
+        # Estructura: (intención/instrucción) + (verbo de violencia) + (víctima
+        # humana). Exigir la víctima evita falsos positivos como "matar el
+        # tiempo" o "matar la pelota".
+        pattern=_rx(
+            _any_loose(
+                "como", "how to", "how do i", "how can i", "dime como", "ensename a",
+                "ensename como", "explicame como", "explica como", "quiero saber como",
+                "necesito saber como", "pasos para", "steps to", "ways to",
+                "mejor forma de", "mejor manera de", "forma de", "manera de",
+            )
+            + r"[\s\w,]{0,20}"
+            + _any_loose(
+                "matar", "asesinar", "asesino", "apunalar", "acuchillar", "estrangular",
+                "ahorcar", "envenenar", "degollar", "descuartizar", "decapitar",
+                "torturar", "secuestrar", "golpear", "agredir", "lastimar", "herir",
+                "disparar", "masacrar", "kill", "murder", "stab", "strangle", "poison",
+                "behead", "dismember", "decapitate", "torture", "kidnap", "hurt",
+                "harm", "injure", "shoot",
+            )
+            + r"[\s\w,]{0,20}"
+            + _any_loose(
+                "a una persona", "a alguien", "a un nino", "a una mujer", "a un hombre",
+                "a un bebe", "a mi vecino", "a mi novia", "a mi novio", "a mi pareja",
+                "a mi esposa", "a mi esposo", "a mi familia", "a la gente",
+                "a las personas", "a mi", "someone", "a person", "people", "a human",
+                "a child", "my wife", "my husband", "my neighbor", "my family",
+                "my friend", "my mother", "my father",
+            )
+        ),
+    ),
+    Rule(
+        id="HC-007",
+        category="harmful_content",
+        weight=60,
+        description="Contenido de autolesión o suicidio (instrucciones o intención de hacerse daño)",
+        pattern=_rx(
+            # Frases inequívocas de autolesión/suicidio: matchean por sí solas.
+            _any_loose(
+                "suicidarme", "suicidarse", "suicidio", "me suicido", "quitarme la vida",
+                "sacarme el corazon", "me saco el corazon", "arrancarme el corazon",
+                "cortarme las venas", "autolesion", "autolesionarme", "mutilarme",
+                "kill myself", "killing myself", "end my life", "commit suicide",
+                "hurt myself", "cut myself", "self harm",
+            )
+            + r"|"
+            # Verbos más ambiguos: requieren un contexto de intención/instrucción.
+            + _any_loose(
+                "como", "how to", "how do i", "quiero", "necesito", "forma de",
+                "manera de", "dime como", "quiero saber como",
+            )
+            + r"[\s\w,]{0,15}"
+            + _any_loose(
+                "matarme", "me mato", "me quiero matar", "cortarme", "lastimarme",
+                "hacerme dano", "morirme", "me quiero morir", "quiero morir",
+            )
         ),
     ),
     # ----------------------- obfuscation -----------------------
