@@ -49,9 +49,13 @@
     countMedium: $("countMedium"),
     countHigh: $("countHigh"),
 
+    heroBlocked: $("heroBlocked"),
+    heroSub: $("heroSub"),
+
     history: $("history"),
     historyEmpty: $("historyEmpty"),
     historyList: $("historyList"),
+    histFilter: $("histFilter"),
 
     apiDot: $("apiDot"),
     apiStatusText: $("apiStatusText"),
@@ -232,10 +236,43 @@
     els.claudeText.textContent = claude.text;
   }
 
-  function renderHistory(items) {
-    if (!items || items.length === 0) {
+  // Estado del historial: guardamos todo y filtramos/renderizamos en cliente.
+  let allHistory = [];
+  let activeFilter = "all";
+  const seenHistoryIds = new Set();
+  let firstHistoryLoad = true;
+  let flashIds = new Set();
+
+  // Recibe datos frescos del servidor: calcula qué filas son NUEVAS (para el
+  // flash en vivo), actualiza el estado y re-renderiza con el filtro actual.
+  function ingestHistory(items) {
+    items = items || [];
+    flashIds = new Set();
+    if (!firstHistoryLoad) {
+      for (const it of items) {
+        if (it.id && !seenHistoryIds.has(it.id)) flashIds.add(it.id);
+      }
+    }
+    for (const it of items) if (it.id) seenHistoryIds.add(it.id);
+    firstHistoryLoad = false;
+    allHistory = items;
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const items =
+      activeFilter === "all"
+        ? allHistory
+        : allHistory.filter((i) => i.channel === activeFilter);
+
+    if (items.length === 0) {
       els.historyEmpty.hidden = false;
+      els.historyEmpty.textContent =
+        activeFilter === "all"
+          ? "Sin análisis todavía."
+          : "Sin mensajes de este canal todavía.";
       els.historyList.hidden = true;
+      flashIds = new Set();
       return;
     }
     els.historyEmpty.hidden = true;
@@ -245,7 +282,7 @@
     for (const item of items) {
       const { cls, label } = levelInfo(item.risk_level);
       const li = document.createElement("li");
-      li.className = `hist hist--${cls}`;
+      li.className = `hist hist--${cls}${flashIds.has(item.id) ? " hist--new" : ""}`;
 
       const prompt = document.createElement("span");
       prompt.className = "hist__prompt";
@@ -269,12 +306,18 @@
       li.append(prompt, status, foot);
       els.historyList.appendChild(li);
     }
+
+    // El flash solo debe verse una vez (al llegar el dato), no al cambiar filtro.
+    flashIds = new Set();
   }
 
   function renderStats(stats) {
     animateCount(els.statTotal, stats.total || 0);
     animateCount(els.statBlocked, stats.blocked || 0);
     animateCount(els.statAllowed, stats.allowed || 0);
+
+    animateCount(els.heroBlocked, stats.blocked || 0);
+    els.heroSub.textContent = `de ${stats.total || 0} analizados`;
 
     const byLevel = stats.by_risk_level || { bajo: 0, medio: 0, alto: 0 };
     const max = Math.max(byLevel.bajo, byLevel.medio, byLevel.alto, 1);
@@ -307,7 +350,7 @@
       if (!historyRes.ok || !statsRes.ok) throw new Error("bad status");
       const history = await historyRes.json();
       const stats = await statsRes.json();
-      renderHistory(history.items);
+      ingestHistory(history.items);
       renderStats(stats);
       return true;
     } catch {
@@ -424,6 +467,17 @@
       e.preventDefault();
       els.form.requestSubmit();
     }
+  });
+
+  // Filtro por canal del historial.
+  els.histFilter.addEventListener("click", (e) => {
+    const btn = e.target.closest(".hist-filter__btn");
+    if (!btn) return;
+    activeFilter = btn.dataset.channel;
+    for (const b of els.histFilter.querySelectorAll(".hist-filter__btn")) {
+      b.classList.toggle("is-active", b === btn);
+    }
+    renderHistory();
   });
 
   checkHealth();

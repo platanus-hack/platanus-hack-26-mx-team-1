@@ -475,7 +475,41 @@ a { color: var(--accent); text-decoration: none; }
 
 /* ------------------------------------------------------------ panel lateral */
 
+/* métrica estrella: amenazas bloqueadas */
+.hero-metric {
+  display: flex; align-items: center; gap: 14px;
+  background:
+    radial-gradient(120% 160% at 0% 0%, var(--danger-soft), transparent 60%),
+    var(--surface-2);
+  border: 1px solid var(--danger-line);
+  border-radius: var(--r); padding: 16px 18px; margin-bottom: 14px;
+  position: relative; overflow: hidden;
+}
+.hero-metric__icon {
+  flex: none; width: 46px; height: 46px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--danger); background: var(--danger-soft); border: 1px solid var(--danger-line);
+}
+.hero-metric__body { display: flex; flex-direction: column; line-height: 1; }
+.hero-metric__value { font-family: var(--font-mono); font-size: 34px; font-weight: 700; color: var(--danger); letter-spacing: -0.02em; }
+.hero-metric__label { font-size: 12px; color: var(--text-dim); margin-top: 5px; text-transform: uppercase; letter-spacing: 0.05em; }
+.hero-metric__sub { margin-left: auto; align-self: flex-end; font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); white-space: nowrap; }
+
 .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+
+/* cabecera del historial + filtro por canal */
+.hist-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin: 24px 0 12px; }
+.hist-head .panel__subheading { margin: 0; }
+.hist-filter { display: flex; gap: 4px; flex-wrap: wrap; }
+.hist-filter__btn {
+  font-family: var(--font-ui); font-size: 11px; font-weight: 600;
+  color: var(--text-faint); background: transparent;
+  border: 1px solid var(--border-soft); border-radius: 999px;
+  padding: 4px 10px; cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.hist-filter__btn:hover { color: var(--text-dim); border-color: var(--border-strong); }
+.hist-filter__btn.is-active { color: var(--accent); background: var(--accent-soft); border-color: var(--accent-line); }
 
 .stat-card {
   background: var(--surface-2); border: 1px solid var(--border-soft);
@@ -520,6 +554,13 @@ a { color: var(--accent); text-decoration: none; }
 .hist--medium { border-left-color: var(--warn); }
 .hist--high { border-left-color: var(--danger); }
 .hist:hover { background: var(--surface-3); }
+
+/* resaltado de la fila recién llegada (refresco en vivo) */
+.hist--new { animation: hist-flash 2.2s cubic-bezier(0.2, 0.7, 0.3, 1); }
+@keyframes hist-flash {
+  0%   { background: var(--accent-soft); box-shadow: 0 0 0 1px var(--accent-line), 0 0 18px -4px var(--accent); transform: translateY(-2px); }
+  100% { background: var(--surface-2); box-shadow: none; transform: translateY(0); }
+}
 .hist__prompt {
   grid-column: 1; font-family: var(--font-mono); font-size: 12.5px; color: var(--text);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;

@@ -146,6 +146,17 @@
       </span>
     </div>
 
+    <div class="hero-metric">
+      <span class="hero-metric__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+      </span>
+      <div class="hero-metric__body">
+        <span class="hero-metric__value" id="heroBlocked" data-value="0">0</span>
+        <span class="hero-metric__label">amenazas bloqueadas</span>
+      </div>
+      <span class="hero-metric__sub" id="heroSub">de 0 analizados</span>
+    </div>
+
     <div class="stats-grid" id="statsGrid">
       <div class="stat-card">
         <span class="stat-card__value" id="statTotal" data-value="0">0</span>
@@ -179,7 +190,15 @@
       </div>
     </div>
 
-    <h3 class="panel__subheading">Historial reciente</h3>
+    <div class="hist-head">
+      <h3 class="panel__subheading">Historial reciente</h3>
+      <div class="hist-filter" id="histFilter" role="group" aria-label="Filtrar por canal">
+        <button type="button" class="hist-filter__btn is-active" data-channel="all">Todos</button>
+        <button type="button" class="hist-filter__btn" data-channel="whatsapp">WhatsApp</button>
+        <button type="button" class="hist-filter__btn" data-channel="web">Web</button>
+        <button type="button" class="hist-filter__btn" data-channel="dashboard">Panel</button>
+      </div>
+    </div>
     <div class="history" id="history">
       <div class="history__empty" id="historyEmpty">Sin análisis todavía.</div>
       <ul class="history__list" id="historyList" hidden></ul>
