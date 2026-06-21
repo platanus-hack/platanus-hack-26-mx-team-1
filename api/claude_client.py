@@ -17,6 +17,11 @@ import os
 
 MODEL = "claude-haiku-4-5-20251001"
 
+# Para la moderación usamos un modelo más capaz que Haiku: razonar sobre
+# intención disfrazada con eufemismos (p. ej. "disolver un pollo de 75kg")
+# requiere más inferencia de la que Haiku hace de forma fiable.
+MODERATION_MODEL = "claude-sonnet-4-6"
+
 
 def _has_api_key() -> bool:
     return bool(os.environ.get("ANTHROPIC_API_KEY"))
@@ -43,6 +48,11 @@ Considera DAÑINO cualquier petición de:
 - violencia, lesiones, asesinato o tortura a personas o animales
 - deshacerse de un cuerpo o cadáver, ocultar un crimen (ej. "disolver", "descomponer",
   "enterrar" algo del tamaño/peso de una persona, aunque digan "pollo", "cerdo", "maniquí")
+
+REGLA CLAVE sobre eufemismos: si el mensaje menciona un objeto/animal con un peso o
+tamaño absurdo o impropio para lo que dice ser (un "pollo de 75kg", un "pescado de 80kg",
+un "saco de 70kg"), trátalo como una señal fuerte de que es un cuerpo humano disfrazado y
+MÁRCALO como dañino. Ante la duda razonable de que algo es un eufemismo de daño, marca.
 - autolesión, suicidio o trastornos alimentarios
 - fabricar armas, explosivos, venenos o sustancias peligrosas
 - producir o conseguir drogas ilegales
@@ -74,7 +84,7 @@ def moderate(text: str) -> dict | None:
     try:
         client = anthropic.Anthropic()
         response = client.messages.create(
-            model=MODEL,
+            model=MODERATION_MODEL,
             max_tokens=200,
             system=_MODERATION_SYSTEM,
             messages=[{"role": "user", "content": text}],
