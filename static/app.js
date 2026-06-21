@@ -169,7 +169,13 @@
     els.verdictBadge.textContent = `${label} · ${verdict.risk_score}/100`;
     els.verdictBadge.className = `badge badge--${cls}`;
 
+    // Reinicia la animación de alerta (forzar reflow) para que se vea en
+    // CADA bloqueo, no solo la primera vez.
+    els.verdictCard.classList.remove("verdict-card--alert");
+    if (verdict.blocked) void els.verdictCard.offsetWidth;
+
     if (verdict.blocked) {
+      els.verdictCard.classList.add("verdict-card--alert");
       els.decision.className = "decision decision--blocked";
       els.decisionIcon.innerHTML = ICONS.blocked;
       els.verdictCaption.textContent = "Bloqueado: este prompt no se reenvió al modelo.";

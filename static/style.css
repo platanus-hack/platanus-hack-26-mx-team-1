@@ -177,6 +177,49 @@ a { color: var(--accent); text-decoration: none; }
   50%      { box-shadow: 0 0 0 5px transparent; }
 }
 
+/* ---------------------------------------------------------------- hero */
+
+html { scroll-behavior: smooth; }
+
+.hero {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: clamp(28px, 5vw, 56px) clamp(16px, 4vw, 32px) 6px;
+}
+.hero__inner { max-width: 780px; }
+.hero__eyebrow {
+  display: inline-block; font-family: var(--font-mono); font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent);
+  background: var(--accent-soft); border: 1px solid var(--accent-line);
+  padding: 5px 12px; border-radius: 999px; margin-bottom: 18px;
+}
+.hero__title {
+  font-size: clamp(28px, 5vw, 46px); line-height: 1.08; letter-spacing: -0.03em;
+  margin: 0 0 16px; font-weight: 800;
+  background: linear-gradient(180deg, #ffffff, #aeb8cc);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.hero__lead {
+  font-size: clamp(15px, 2vw, 17px); line-height: 1.6;
+  color: var(--text-dim); margin: 0 0 22px; max-width: 640px;
+}
+.hero__lead strong { color: var(--text); font-weight: 600; }
+.hero__channels { display: flex; flex-wrap: wrap; gap: 9px; margin-bottom: 26px; }
+.chan-tag {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 13px; font-weight: 600; padding: 8px 14px; border-radius: 999px;
+  border: 1px solid var(--border-soft); background: var(--surface); color: var(--text-dim);
+}
+.chan-tag--whatsapp { color: #25d366; border-color: #25d36633; background: #25d3660f; }
+.chan-tag--web { color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); }
+.chan-tag--dashboard { color: var(--text); }
+.chan-tag--more { color: var(--text-faint); font-weight: 500; border-style: dashed; }
+.hero__cta { font-size: 15px; padding: 13px 22px; }
+.hero__cta svg { transition: transform 0.2s; }
+.hero__cta:hover svg { transform: translateY(2px); }
+
+#analyze { scroll-margin-top: 84px; }
+
 /* ---------------------------------------------------------------- layout */
 
 .layout {
@@ -392,6 +435,20 @@ a { color: var(--accent); text-decoration: none; }
 }
 .verdict-card[data-level="medio"] { background: radial-gradient(120% 140% at 0% 0%, var(--warn-soft), transparent 55%), var(--surface-2); border-color: var(--warn-line); }
 .verdict-card[data-level="alto"]  { background: radial-gradient(120% 140% at 0% 0%, var(--danger-soft), transparent 55%), var(--surface-2); border-color: var(--danger-line); }
+
+/* impacto extra cuando un mensaje se BLOQUEA */
+.verdict-card--alert { animation: alert-pulse 0.75s cubic-bezier(0.2, 0.7, 0.3, 1); }
+@keyframes alert-pulse {
+  0%   { box-shadow: 0 0 0 0 var(--danger); }
+  30%  { box-shadow: 0 0 0 5px transparent, 0 0 34px -4px var(--danger); transform: scale(1.012); }
+  100% { box-shadow: none; transform: scale(1); }
+}
+@keyframes shield-pop {
+  0%   { transform: scale(0.5); opacity: 0; }
+  60%  { transform: scale(1.18); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.decision--blocked .decision__icon { animation: shield-pop 0.45s cubic-bezier(0.34, 1.4, 0.5, 1); }
 
 .gauge { position: relative; width: 172px; flex: 0 0 auto; }
 .gauge__svg { width: 100%; display: block; overflow: visible; }
