@@ -88,6 +88,7 @@ def _run_firewall_and_log(
 
     bot_text = None
     claude_stub = None
+    claude_model = None
     forwarded = False
 
     if blocked:
@@ -96,6 +97,7 @@ def _run_firewall_and_log(
         forwarded = True
         claude_result = claude_client.ask_claude(text)
         claude_stub = claude_result["stub"]
+        claude_model = claude_result["model"]
         bot_text = claude_result["text"]
 
     record_id = storage.save_analysis(
@@ -120,6 +122,7 @@ def _run_firewall_and_log(
         "matches": matches_payload,
         "reply": bot_text,
         "claude_stub": claude_stub,
+        "claude_model": claude_model,
     }
 
 
@@ -140,7 +143,11 @@ def analyze(req: AnalyzeRequest):
 
     claude_payload = None
     if result["claude_stub"] is not None:
-        claude_payload = {"stub": result["claude_stub"], "text": result["reply"]}
+        claude_payload = {
+            "stub": result["claude_stub"],
+            "model": result["claude_model"],
+            "text": result["reply"],
+        }
 
     return {
         "id": result["id"],
